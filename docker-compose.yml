@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: apps/api
+      dockerfile: ../../docker/Dockerfile.api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./secondbrain.db}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-change-me}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SWITCH_BRIDGE_URL: ${SWITCH_BRIDGE_URL:-}
+      SWITCH_API_KEY: ${SWITCH_API_KEY:-}
+      SWITCH_AGENT_ID: ${SWITCH_AGENT_ID:-}
+    ports: ["${API_PORT:-8000}:8000"]
+    volumes: ["api_data:/data"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  web:
+    build:
+      context: apps/web
+      dockerfile: ../../docker/Dockerfile.web
+    ports: ["${WEB_PORT:-4173}:4173"]
+    depends_on:
+      api:
+        condition: service_healthy
+  db:
+    image: postgres:16-alpine
+    profiles: ["prod"]
+    environment:
+      POSTGRES_USER: sb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev}
+      POSTGRES_DB: secondbrain
+    ports: ["5432:5432"]
+volumes:
+  api_data: {}

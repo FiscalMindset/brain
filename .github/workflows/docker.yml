@@ -1,0 +1,9 @@
+name: Docker
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile.api -t secondbrain-api .
+      - run: docker build -f docker/Dockerfile.web -t secondbrain-web .
