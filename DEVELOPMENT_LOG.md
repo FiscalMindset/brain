@@ -56,3 +56,13 @@ source). See [CURRENT.md](./CURRENT.md) §6 / [TODO.md](./TODO.md).
 - Wrote 116 doc files across `docs/` (product, architecture, design, engineering, integrations, ai, security, database, api, testing, devops, operations, hackathon).
 - Added `docker-compose.yml` (validated with `docker compose config`), Dockerfiles, CI workflows, `.gitignore`, `.env.example`, `switch/README.md`.
 - Verification: 46 tests passed / 93% coverage; `npm run build` clean; YAML all valid.
+
+## 2026-11-09 — Backlog close-out
+- Alembic migrations added (alembic.ini + versions/0001_initial.py covering all 11 tables; upgrade head verified on temp DB).
+- URL ingestion adapter (apps/api/app/integrations/url_adapter.py) + POST /api/sources/url with SSRF guards (scheme/host/IP validation, 500KB cap, timeouts) — 5 new tests.
+- Security headers middleware (nosniff/DENY/Referrer-Policy/CSP) — 1 new test.
+- Ruff config (pyproject.toml, line-length 100) wired in CI; all lint errors fixed.
+- Vitest 20 tests (API client + component render + axe zero-critical) and tsc typecheck gate added to CI; shared OpenAPI types exported to packages/shared.
+- Perf bench (10k docs): p95 30-33ms — PASS vs 300ms budget; documented.
+- Living docs refreshed: CURRENT/TODO/KNOWN_ISSUES now reflect verified reality; only OAuth/Switch-console-dependent items remain open.
+- Final numbers: backend 55 passed / 93% line coverage; frontend 20 passed, typecheck + build clean; docker compose config valid.

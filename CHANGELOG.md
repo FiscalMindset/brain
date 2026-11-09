@@ -6,6 +6,10 @@ versioning.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-11-09
+
+Hardening + closing out the backlog: Alembic migrations (alembic upgrade head creates all 11 tables), SSRF-safe URL ingestion (POST /api/sources/url), security headers middleware, ruff lint wired in CI, Vitest 20 tests + axe a11y, shared OpenAPI types at packages/shared, search perf bench (10k docs: p95 30-33ms vs 300ms budget).
+
 ## [0.1.0] — 2026-11-06
 
 Initial production-grade build: FastAPI backend (auth, sources+upload, tokenized search, 8-step research orchestration, 9-agent catalogue, projects/tasks/issue-draft, memory, graph, dashboard, audit), React+Vite frontend (13 routes, dark/light themes), Switch room template + 4 agent instruction files + retrying protocol client, Docker Compose + CI, 116 doc files. Tests: 46 passed, 93% line coverage. Web build clean.
