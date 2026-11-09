@@ -1,4 +1,14 @@
 // Typed API client — all calls go through /api (Vite proxy in dev).
+// Canonical shared contracts (SB-ARCH-004) live in packages/shared/types.ts.
+import type {
+  User, Source, Document, SearchResult, ResearchStep,
+  SearchResponse, ResearchResponse, Project, Task, Integration, AgentInfo, TokenResponse,
+} from '../../../../packages/shared/types'
+
+export type {
+  User, Source, Document, SearchResult, ResearchStep,
+  SearchResponse, ResearchResponse, Project, Task, Integration, AgentInfo, TokenResponse,
+}
 
 export class ApiError extends Error {
   status: number
@@ -50,7 +60,9 @@ const json = (body: unknown): RequestInit => ({
 })
 
 // ---------- Types ----------
-export interface TokenResponse { access_token: string; token_type: string }
+// Canonical shapes (TokenResponse, SearchResponse, ResearchResponse, Project,
+// Task, Integration, AgentInfo, Source, Document, SearchResult) are re-exported
+// from packages/shared/types.ts above (SB-ARCH-004). Web-only shapes follow.
 export interface SourceSummary { id: string; kind: string; title: string; url?: string | null; content_hash?: string; chunks?: number; deduplicated?: boolean }
 export interface SourceDetail extends SourceSummary {
   meta?: Record<string, unknown> | null
@@ -58,18 +70,6 @@ export interface SourceDetail extends SourceSummary {
   chunks_list?: Chunk[]
 }
 export interface Chunk { id: string; chunk_index: number; text: string }
-export interface SearchResult { document_id: string; source_id: string; chunk_index: number; text: string; citation: string }
-export interface SearchResponse { query: string; count: number; results: SearchResult[]; citations: unknown[] }
-export interface ResearchStep { agent?: string; name?: string; role?: string; status?: string; output?: string; [k: string]: unknown }
-export interface ResearchResponse {
-  session_id?: string; query: string; steps: ResearchStep[]; findings: { text: string; document_id?: string; chunk_index?: number }[];
-  contradictions?: unknown[]; gaps?: unknown[]; citations?: unknown[]; project_id?: string | null;
-  human_approval?: boolean | string | null; next_actions?: string[]; [k: string]: unknown
-}
-export interface AgentInfo { name: string; role?: string; permissions?: string[] | string; [k: string]: unknown }
-export interface Task { id?: string; title: string; body?: string; status?: string; assignee?: string; [k: string]: unknown }
-export interface Project { id: string; title: string; description?: string; status?: string; tasks?: Task[]; [k: string]: unknown }
-export interface Integration { name: string; status?: string; requires_oauth?: boolean; [k: string]: unknown }
 export interface DashboardData { [k: string]: unknown; metrics?: Record<string, number>; sources?: unknown[]; projects?: unknown[]; recent_activity?: unknown[]; activity?: unknown[]; memories?: unknown[]; entities?: unknown[] }
 export interface MemoryItem { id: string; text?: string; content?: string; key?: string; [k: string]: unknown }
 export interface GraphData { entities?: unknown[]; relationships?: unknown[]; nodes?: unknown[]; edges?: unknown[]; [k: string]: unknown }
@@ -84,7 +84,7 @@ export const apiAuth = {
 }
 
 // ---------- Sources ----------
-export interface CreateSourcePayload { kind: string; title: string; url?: string; content?: string; meta?: Record<string, unknown> }
+export interface CreateSourcePayload { kind: string; title?: string; url?: string; content?: string; meta?: Record<string, unknown> }
 export const apiSources = {
   create: (p: CreateSourcePayload) => request<SourceSummary>('/api/sources', json(p)),
   list: () => request<SourceSummary[]>('/api/sources'),
