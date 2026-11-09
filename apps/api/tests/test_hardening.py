@@ -1,11 +1,14 @@
 """Hardening tests: retrieval, security, agents, CRUD, upload, lifespan."""
 import io
-from datetime import datetime, timedelta, timezone
-import httpx, pytest
-from app.api.auth import check_rate_limit, _hits
+from datetime import UTC, datetime, timedelta
+
+import httpx
+
+from app.api.auth import _hits, check_rate_limit
 from app.core.security import create_token, decode_token
 from app.services.ingestion import detect_language, extract_summary, extract_topics
 from app.services.retrieval import escape_like, search_documents
+
 
 def _seed(client, headers, content):
     return client.post("/api/sources", headers=headers, json={"content": content}).json()
@@ -54,8 +57,8 @@ def test_search_since_naive_aware(client, auth_headers):
 
 # helper to look up uid via DB
 def _uid_via_db():
-    from tests.conftest import TestingSession
     from app.models.models import User
+    from tests.conftest import TestingSession
     db = TestingSession()
     try: return db.query(User).filter(User.email == "tester@example.com").first().id
     finally: db.close()
@@ -68,8 +71,8 @@ def test_search_since_works(client, auth_headers):
     try:
         from app.models.models import User
         uid = db.query(User).filter(User.email == "tester@example.com").first().id
-        assert search_documents(db, uid, "recent", since=datetime.now(timezone.utc) - timedelta(days=1))
-        assert not search_documents(db, uid, "recent", since=datetime.now(timezone.utc) + timedelta(days=1))
+        assert search_documents(db, uid, "recent", since=datetime.now(UTC) - timedelta(days=1))
+        assert not search_documents(db, uid, "recent", since=datetime.now(UTC) + timedelta(days=1))
     finally: db.close()
 
 # 6 metadata extraction
@@ -105,8 +108,8 @@ def test_rate_limiter():
 # 11 token expiry + revoked (deleted user)
 def test_expired_and_deleted_user(client, auth_headers):
     assert decode_token(create_token("x", expires_in=-5)) is None
-    from tests.conftest import TestingSession
     from app.models.models import User
+    from tests.conftest import TestingSession
     db = TestingSession()
     try:
         u = db.query(User).filter(User.email == "tester@example.com").first()
@@ -176,7 +179,7 @@ def test_upload_txt_md(client, auth_headers):
 
 # 19 switch client retry + helper + is_configured
 def test_switch_client_helpers():
-    from app.switch.client import SwitchClient, SwitchError
+    from app.switch.client import SwitchClient
     calls = {"n": 0}
     def handler(req):
         calls["n"] += 1

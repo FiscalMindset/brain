@@ -4,9 +4,11 @@ Tokenized ANY-word scoring: tokens split on whitespace, score = matched
 term count, rank by score desc then created_at desc.
 """
 from __future__ import annotations
-from datetime import datetime, timezone
-from sqlalchemy.orm import Session
+
+from datetime import UTC, datetime
+
 from app.models.models import Document
+
 
 def escape_like(term: str) -> str:
     return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -17,7 +19,7 @@ def tokenize_query(query: str) -> list[str]:
 def search_documents(db, user_id, query, *, kind=None, source_id=None, since=None, limit=20):
     limit = max(1, min(limit, 100))
     if since is not None and since.tzinfo is None:
-        since = since.replace(tzinfo=timezone.utc)
+        since = since.replace(tzinfo=UTC)
     stmt = db.query(Document).filter(Document.user_id == user_id)
     if source_id:
         stmt = stmt.filter(Document.source_id == source_id)
@@ -36,9 +38,9 @@ def search_documents(db, user_id, query, *, kind=None, source_id=None, since=Non
     def score(doc):
         low = doc.text.lower()
         return sum(1 for t in terms if t in low)
-    docs.sort(key=lambda d: (-score(d), d.created_at or datetime.min.replace(tzinfo=timezone.utc)), reverse=False)
+    docs.sort(key=lambda d: (-score(d), d.created_at or datetime.min.replace(tzinfo=UTC)), reverse=False)
     # python sort: score desc, recency desc -> use key with negative? handle recency via timestamp
-    docs = sorted(docs, key=lambda d: d.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    docs = sorted(docs, key=lambda d: d.created_at or datetime.min.replace(tzinfo=UTC), reverse=True)
     docs = sorted(docs, key=lambda d: score(d), reverse=True)
     return docs[:limit]
 

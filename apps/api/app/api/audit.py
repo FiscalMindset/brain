@@ -1,9 +1,11 @@
 """Audit events (user-scoped, paginated)."""
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.security import require_user
 from app.models.models import AuditEvent
+
 router = APIRouter(prefix="/audit", tags=["audit"])
 @router.get("")
 def list_audit(limit: int = Query(default=20, ge=1, le=100), offset: int = Query(default=0, ge=0), db: Session = Depends(get_db), user=Depends(require_user)):

@@ -2,9 +2,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.security import require_user
 from app.models.models import UserMemory
+
 router = APIRouter(prefix="/memory", tags=["memory"])
 class MemoryCreate(BaseModel):
     key: str = Field(min_length=1, max_length=256)

@@ -1,7 +1,11 @@
 """Switch bridge client with timeouts, retries, typed errors."""
 from __future__ import annotations
-import os, time
+
+import os
+import time
+
 import httpx
+
 DOC_OPS = ("list_rooms", "post_message", "read_context")
 
 class SwitchError(Exception):

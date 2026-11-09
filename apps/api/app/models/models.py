@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -16,7 +16,7 @@ def _uuid() -> str:
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # type: ignore[assignment]  # Mapped defaults accept callables
@@ -43,7 +43,7 @@ class Source(Base):
     meta: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
-    documents: Mapped[list["Document"]] = relationship(back_populates="source", cascade="all, delete-orphan")
+    documents: Mapped[list[Document]] = relationship(back_populates="source", cascade="all, delete-orphan")
 
 
 class Document(Base):
@@ -94,7 +94,7 @@ class Project(Base):
     meta: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(default=_utcnow)
 
-    tasks: Mapped[list["ProjectTask"]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    tasks: Mapped[list[ProjectTask]] = relationship(back_populates="project", cascade="all, delete-orphan")
 
 
 class ProjectTask(Base):

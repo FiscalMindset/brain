@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_user
-from app.services.agents import AGENTS, AGENT_NAMES, run_orchestration
+from app.services.agents import AGENT_NAMES, AGENTS, run_orchestration
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 

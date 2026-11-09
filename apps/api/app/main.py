@@ -1,13 +1,30 @@
 """SecondBrain API — FastAPI application entry point."""
 from __future__ import annotations
-import logging, time
+
+import logging
+import time
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.api import agents, audit, auth, dashboard, graph, integrations, memory, projects, research, search, sources
+
+from app.api import (
+    agents,
+    audit,
+    auth,
+    dashboard,
+    graph,
+    integrations,
+    memory,
+    projects,
+    research,
+    search,
+    sources,
+)
 from app.core.config import settings
 from app.core.database import init_db
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("secondbrain")
 @asynccontextmanager
@@ -16,6 +33,19 @@ async def lifespan(app: FastAPI):
     yield
 app = FastAPI(title="SecondBrain API", version=settings.APP_VERSION, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")] or ["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    if "X-Content-Type-Options" not in response.headers:
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    if "X-Frame-Options" not in response.headers:
+        response.headers["X-Frame-Options"] = "DENY"
+    if "Referrer-Policy" not in response.headers:
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if "Content-Security-Policy" not in response.headers:
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+    return response
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()

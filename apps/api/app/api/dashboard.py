@@ -1,9 +1,20 @@
 """Dashboard aggregated counts."""
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.security import require_user
-from app.models.models import AuditEvent, Document, KnowledgeEntity, Project, ProjectTask, ResearchSession, Source, UserMemory
+from app.models.models import (
+    AuditEvent,
+    Document,
+    KnowledgeEntity,
+    Project,
+    ProjectTask,
+    ResearchSession,
+    Source,
+    UserMemory,
+)
+
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("")
 def dashboard(db: Session = Depends(get_db), user=Depends(require_user)):

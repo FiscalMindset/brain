@@ -1,0 +1,8 @@
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# B008: FastAPI Depends() in argument defaults is the standard idiomatic pattern.
+# BLE001: intentional defensive handling (audit never breaks requests, fetch/PDF error mapping).
+ignore = ["B008", "BLE001"]

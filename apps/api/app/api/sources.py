@@ -1,12 +1,18 @@
 """Source ingestion: create (with dedupe), list, fetch, upload."""
+import ipaddress
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.security import require_user
+from app.integrations.url_adapter import UrlAdapter, UrlFetchError, UrlOversizeError
 from app.models.models import Document, Source
 from app.services.audit import record_audit
 from app.services.ingestion import chunk_text, extract_metadata, fingerprint
+
 router = APIRouter(prefix="/sources", tags=["sources"])
 class SourceCreate(BaseModel):
     kind: str = Field(default="note", max_length=64)
@@ -16,6 +22,9 @@ class SourceCreate(BaseModel):
     meta: dict = Field(default_factory=dict)
 class SourceOut(BaseModel):
     id: str; kind: str; title: str | None; url: str | None; content_hash: str; chunks: int = 0; deduplicated: bool = False
+
+class UrlIngestRequest(BaseModel):
+    url: str
 
 def _ingest(db, user, content, kind="note", title=None, url=None, meta=None):
     meta = meta or {}
@@ -38,6 +47,47 @@ def create_source(payload: SourceCreate, db: Session = Depends(get_db), user=Dep
     count = db.query(Document).filter(Document.source_id == source.id).count()
     return SourceOut(id=source.id, kind=source.kind, title=source.title, url=source.url, content_hash=source.content_hash, chunks=count, deduplicated=dedup)
 
+def _validate_url(raw: str) -> str:
+    parsed = urlparse(raw)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(400, "Invalid URL: only http and https schemes are allowed")
+    host = (parsed.hostname or "").lower()
+    if not host or host in ("localhost",) or host.endswith((".localhost", ".local")):
+        raise HTTPException(400, "Invalid URL: localhost is not allowed")
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified:
+            raise HTTPException(400, "Invalid URL: private or reserved IP addresses are not allowed")
+    except ValueError:
+        # Not a literal IP (e.g. a domain name) — we do not resolve DNS.
+        pass
+    # Common literal private ranges that ip_address classifies as reserved/private are
+    # covered above; also reject well-known literal encodings handled as plain hostnames:
+    if host in ("0.0.0.0", "::", "[::1]", "::1"):
+        raise HTTPException(400, "Invalid URL: private or reserved IP addresses are not allowed")
+    return raw
+
+
+@router.post("/url", response_model=SourceOut)
+def ingest_url(payload: UrlIngestRequest, db: Session = Depends(get_db), user=Depends(require_user)):
+    url = _validate_url(payload.url)
+    try:
+        text, title, meta = UrlAdapter().fetch(url)
+    except UrlOversizeError:
+        raise HTTPException(400, "Fetched content too large (500KB max)")
+    except UrlFetchError as e:
+        raise HTTPException(502, f"Failed to fetch URL: {e}")
+    except Exception as e:
+        raise HTTPException(502, f"Failed to fetch URL: {e}")
+    if not text.strip():
+        raise HTTPException(400, "Fetched URL contained no extractable text")
+    source, dedup = _ingest(db, user, text, kind="url", title=title or None, url=url, meta=meta)
+    if not dedup:
+        db.commit()
+    count = db.query(Document).filter(Document.source_id == source.id).count()
+    return SourceOut(id=source.id, kind=source.kind, title=source.title, url=source.url, content_hash=source.content_hash, chunks=count, deduplicated=dedup)
+
+
 @router.post("/upload")
 def upload_sources(files: list[UploadFile], db: Session = Depends(get_db), user=Depends(require_user)):
     if len(files) > 5: raise HTTPException(400, "Maximum 5 files")
@@ -49,8 +99,9 @@ def upload_sources(files: list[UploadFile], db: Session = Depends(get_db), user=
         if len(raw) > 2*1024*1024: raise HTTPException(400, "File too large (2MB max)")
         if name.endswith(".pdf"):
             try:
-                from pypdf import PdfReader
                 from io import BytesIO
+
+                from pypdf import PdfReader
                 reader = PdfReader(BytesIO(raw))
                 text = "\n".join((p.extract_text() or "") for p in reader.pages)
             except ImportError:

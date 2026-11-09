@@ -1,6 +1,6 @@
 """In-process multi-agent orchestration."""
 from __future__ import annotations
-from sqlalchemy.orm import Session
+
 from app.services.retrieval import citation_for, search_documents
 
 AGENTS = [
